@@ -10,15 +10,20 @@ ssh_port: 22
 deploy_authorized_keys:
   - "ssh-ed25519 AAAA... github-actions-deploy"
 
+# --- GitHub ---
+# Путь к ПРИВАТНОМУ ключу на машине, где запускается Ansible. Роль github_ssh
+# положит его пользователю deploy, и клонирование пойдёт по SSH.
+git_ssh_private_key_file: /home/ubuntu/.ssh/github_key
+
 # --- Firewall: порты, открытые наружу (SSH открывается отдельно) ---
 public_ports:
   - 80
   - 443
 
 # --- Приложения: что клонировать на сервер (роль app_checkout) ---
-# Список можно менять свободно: роль ничего не знает о конкретных проектах.
+# repo -- только SSH-адрес (git@github.com:org/repo.git).
 apps:
   - name: some-api
-    repo: https://github.com/<ORG_NAME>/<REPOS_NAME>.git
+    repo: git@github.com:<ORG_NAME>/<REPO_NAME>.git
     dest: /opt/path
     version: main

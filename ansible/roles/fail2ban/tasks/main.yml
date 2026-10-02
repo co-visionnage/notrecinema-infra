@@ -21,3 +21,6 @@
     name: fail2ban
     state: started
     enabled: true
+
+- name: Apply fail2ban config now
+  ansible.builtin.meta: flush_handlers

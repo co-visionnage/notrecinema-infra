@@ -1,0 +1,8 @@
+---
+deploy_user_home: "/home/{{ deploy_user }}"
+github_ssh_key_path: "{{ deploy_user_home }}/.ssh/github_ed25519"
+github_known_hosts_path: "{{ deploy_user_home }}/.ssh/known_hosts"
+# Публичный ключ хоста github.com (ed25519), отпечаток
+# SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU -- совпадает с тем, что
+# опубликован в документации GitHub.
+github_host_key: "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"

@@ -1,8 +1,17 @@
 ---
 # Универсальная роль: клонирует всё, что перечислено в переменной `apps`
-# (name, repo, dest, version). Папки принадлежат deploy_user, чтобы деплой и
+# (name, repo, dest, version). Клонирование только по SSH (git@github.com:...),
+# ключ ставит роль github_ssh. Папки принадлежат deploy_user, чтобы деплой и
 # git работали без sudo. Существующий клон не трогаем (update: false):
 # актуальную версию выкатывает CI.
+- name: Require SSH repository URLs
+  ansible.builtin.assert:
+    that: item.repo is match('^git@github\.com:')
+    fail_msg: "{{ item.name }}: repo должен быть SSH-адресом (git@github.com:org/repo.git)"
+  loop: "{{ apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+
 - name: Create app directories
   ansible.builtin.file:
     path: "{{ item.dest }}"
@@ -20,6 +29,8 @@
     dest: "{{ item.dest }}"
     version: "{{ item.version | default('main') }}"
     update: false
+    key_file: "{{ github_ssh_key_path }}"
+    ssh_opts: "-o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile={{ github_known_hosts_path }}"
   become_user: "{{ deploy_user }}"
   loop: "{{ apps }}"
   loop_control:

@@ -24,3 +24,9 @@
       X11Forwarding no
     validate: "sshd -t -f %s"
   notify: Restart sshd
+
+# Применяем конфиг сразу, а не в конце плейбука: иначе при падении любой
+# следующей задачи sshd остался бы со старым конфигом, а повторный запуск
+# (файл уже не меняется) его бы не перезапустил.
+- name: Apply sshd config now
+  ansible.builtin.meta: flush_handlers

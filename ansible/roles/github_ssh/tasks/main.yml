@@ -1,0 +1,66 @@
+---
+# Доступ deploy-пользователя к GitHub по SSH. Приватный ключ берётся из файла
+# на машине, где запускается Ansible (git_ssh_private_key_file).
+- name: Require git_ssh_private_key_file
+  ansible.builtin.assert:
+    that:
+      - git_ssh_private_key_file is defined
+      - git_ssh_private_key_file | length > 0
+    fail_msg: "Укажите git_ssh_private_key_file в group_vars/all.yml"
+
+- name: Check the private key file exists
+  ansible.builtin.stat:
+    path: "{{ git_ssh_private_key_file }}"
+  delegate_to: localhost
+  become: false
+  register: git_ssh_key_stat
+
+- name: Fail if the private key file is missing
+  ansible.builtin.assert:
+    that: git_ssh_key_stat.stat.exists
+    fail_msg: "Файл {{ git_ssh_private_key_file }} не найден"
+
+- name: Create .ssh directory for the deploy user
+  ansible.builtin.file:
+    path: "{{ deploy_user_home }}/.ssh"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0700"
+
+- name: Install the GitHub private key
+  ansible.builtin.copy:
+    src: "{{ git_ssh_private_key_file }}"
+    dest: "{{ github_ssh_key_path }}"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0600"
+  no_log: true
+
+- name: Pin the github.com host key
+  ansible.builtin.known_hosts:
+    path: "{{ github_known_hosts_path }}"
+    name: github.com
+    key: "{{ github_host_key }}"
+    state: present
+
+- name: Set known_hosts ownership
+  ansible.builtin.file:
+    path: "{{ github_known_hosts_path }}"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0644"
+
+- name: Configure ssh to use the key for github.com
+  ansible.builtin.blockinfile:
+    path: "{{ deploy_user_home }}/.ssh/config"
+    create: true
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0600"
+    marker: "# {mark} ANSIBLE MANAGED: github"
+    block: |
+      Host github.com
+        IdentityFile {{ github_ssh_key_path }}
+        IdentitiesOnly yes
+        StrictHostKeyChecking yes
