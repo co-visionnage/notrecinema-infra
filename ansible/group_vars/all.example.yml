@@ -31,7 +31,7 @@ nginx_sites:
     client_max_body_size: 6m
   - name: media
     server_name: media.notrecinema.ru
-    upstream: http://127.0.0.1:9000
+    upstream: http://127.0.0.1:8333
     cache: true
     path_prefix: /notrecinema-images/
 
