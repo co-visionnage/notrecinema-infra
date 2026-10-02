@@ -1,0 +1,69 @@
+---
+- name: Require certbot email and sites
+  ansible.builtin.assert:
+    that:
+      - nginx_certbot_email | length > 0
+      - nginx_sites | length > 0
+    fail_msg: "Задайте nginx_certbot_email и nginx_sites в group_vars/all.yml"
+
+- name: Install nginx and certbot
+  ansible.builtin.apt:
+    name: [nginx, certbot]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create ACME webroot
+  ansible.builtin.file:
+    path: "{{ nginx_webroot }}"
+    state: directory
+    mode: "0755"
+
+- name: Create cache directory
+  ansible.builtin.file:
+    path: "{{ nginx_cache_path }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0700"
+
+- name: Remove default site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Install global http settings
+  ansible.builtin.template:
+    src: 00-notrecinema.conf.j2
+    dest: /etc/nginx/conf.d/00-notrecinema.conf
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Install security headers snippet
+  ansible.builtin.template:
+    src: security-headers.conf.j2
+    dest: /etc/nginx/snippets/notrecinema-security.conf
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Reload nginx after certbot renewal
+  ansible.builtin.copy:
+    dest: /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      systemctl reload nginx
+
+- name: Enable nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: Configure sites
+  ansible.builtin.include_tasks: site.yml
+  loop: "{{ nginx_sites }}"
+  loop_control:
+    loop_var: site
+    label: "{{ site.server_name }}"

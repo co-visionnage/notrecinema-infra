@@ -21,10 +21,29 @@ public_ports:
   - 80
   - 443
 
+# --- nginx (роль nginx): TLS, проксирование и кэш картинок ---
+# Перед запуском A-записи api.* и media.* должны указывать на этот сервер.
+nginx_certbot_email: you@example.com
+nginx_sites:
+  - name: api
+    server_name: api.notrecinema.ru
+    upstream: http://127.0.0.1:8090
+    client_max_body_size: 6m
+  - name: media
+    server_name: media.notrecinema.ru
+    upstream: http://127.0.0.1:9000
+    cache: true
+    path_prefix: /notrecinema-images/
+
 # --- Приложения: что клонировать на сервер (роль app_checkout) ---
 # repo -- только SSH-адрес (git@github.com:org/repo.git).
 apps:
-  - name: some-api
-    repo: git@github.com:<ORG_NAME>/<REPO_NAME>.git
-    dest: /opt/path
+  - name: notrecinema-api
+    repo: git@github.com:co-visionnage/notrecinema-api.git
+    dest: /opt/notrecinema
+    version: main
+  # Схема БД: нужна docker-compose.prod.yml (init.sh и сборка контейнера миграций).
+  - name: notrecinema-schema
+    repo: git@github.com:co-visionnage/database.git
+    dest: /opt/notrecinema-schema
     version: main

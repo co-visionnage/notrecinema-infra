@@ -1,0 +1,50 @@
+---
+# Два прохода: пока нет сертификата, сайт отдаёт только HTTP (ACME-проверка),
+# после выпуска сертификата конфиг перерисовывается с HTTPS.
+- name: "{{ site.server_name }}: check certificate"
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ site.server_name }}/fullchain.pem"
+  register: cert_before
+
+- name: "{{ site.server_name }}: render config"
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: "/etc/nginx/conf.d/{{ site.name }}.conf"
+    mode: "0644"
+  vars:
+    site_has_cert: "{{ cert_before.stat.exists }}"
+  notify: Reload nginx
+
+- name: Validate nginx config
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Apply config before the ACME challenge
+  ansible.builtin.meta: flush_handlers
+
+# Падает, если A-запись домена ещё не указывает на этот сервер.
+- name: "{{ site.server_name }}: obtain certificate"
+  ansible.builtin.command: >-
+    certbot certonly --webroot -w {{ nginx_webroot }}
+    -d {{ site.server_name }} -m {{ nginx_certbot_email }}
+    --agree-tos --no-eff-email --non-interactive
+  args:
+    creates: "/etc/letsencrypt/live/{{ site.server_name }}/fullchain.pem"
+
+- name: "{{ site.server_name }}: re-check certificate"
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ site.server_name }}/fullchain.pem"
+  register: cert_after
+
+- name: "{{ site.server_name }}: render final config"
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: "/etc/nginx/conf.d/{{ site.name }}.conf"
+    mode: "0644"
+  vars:
+    site_has_cert: "{{ cert_after.stat.exists }}"
+  notify: Reload nginx
+
+- name: Validate final nginx config
+  ansible.builtin.command: nginx -t
+  changed_when: false

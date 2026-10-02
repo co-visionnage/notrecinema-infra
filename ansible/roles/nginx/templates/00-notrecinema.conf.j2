@@ -1,0 +1,10 @@
+# Управляется Ansible (роль nginx). Контекст http.
+server_tokens off;
+
+gzip on;
+gzip_comp_level 5;
+gzip_min_length 512;
+gzip_proxied any;
+gzip_types application/json application/javascript text/css text/plain image/svg+xml;
+
+proxy_cache_path {{ nginx_cache_path }} levels=1:2 keys_zone=media:50m max_size={{ nginx_cache_size }} inactive={{ nginx_cache_valid }} use_temp_path=off;

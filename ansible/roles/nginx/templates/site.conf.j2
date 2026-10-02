@@ -1,0 +1,73 @@
+# Управляется Ansible (роль nginx). Сайт: {{ site.server_name }}
+{% macro proxy() %}
+        proxy_pass {{ site.upstream }};
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+{% if site.cache | default(false) %}
+        limit_except GET HEAD {
+            deny all;
+        }
+        proxy_cache media;
+        proxy_cache_valid 200 206 {{ nginx_cache_valid }};
+        proxy_cache_valid 404 1m;
+        proxy_cache_lock on;
+        proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+        expires {{ site.browser_cache | default('30d') }};
+        include snippets/notrecinema-security.conf;
+        add_header X-Cache-Status $upstream_cache_status always;
+{% endif %}
+{% endmacro %}
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{ site.server_name }};
+
+    location /.well-known/acme-challenge/ {
+        root {{ nginx_webroot }};
+    }
+
+    location / {
+{% if site_has_cert %}
+        return 301 https://$host$request_uri;
+{% else %}
+        return 503;
+{% endif %}
+    }
+}
+{% if site_has_cert %}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name {{ site.server_name }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ site.server_name }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ site.server_name }}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_tickets off;
+
+    include snippets/notrecinema-security.conf;
+    client_max_body_size {{ site.client_max_body_size | default('1m') }};
+{% if site.path_prefix is defined %}
+
+    location {{ site.path_prefix }} {
+{{ proxy() }}
+    }
+
+    location / {
+        return 404;
+    }
+{% else %}
+
+    location / {
+{{ proxy() }}
+    }
+{% endif %}
+}
+{% endif %}

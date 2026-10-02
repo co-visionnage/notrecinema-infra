@@ -25,5 +25,6 @@
     - {role: ssh_hardening, tags: [ssh]}
     - {role: firewall, tags: [firewall]}
     - {role: fail2ban, tags: [fail2ban]}
+    - {role: nginx, tags: [nginx]}
     - {role: github_ssh, tags: [apps, github]}
     - {role: app_checkout, tags: [apps]}
