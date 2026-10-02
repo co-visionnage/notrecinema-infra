@@ -59,7 +59,7 @@
     group: "{{ deploy_user }}"
     mode: "0600"
     marker: "# {mark} ANSIBLE MANAGED: github"
-    block: |
+    block: |-
       Host github.com
         IdentityFile {{ github_ssh_key_path }}
         IdentitiesOnly yes
