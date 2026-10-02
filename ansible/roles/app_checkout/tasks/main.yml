@@ -1,0 +1,26 @@
+---
+# Универсальная роль: клонирует всё, что перечислено в переменной `apps`
+# (name, repo, dest, version). Папки принадлежат deploy_user, чтобы деплой и
+# git работали без sudo. Существующий клон не трогаем (update: false):
+# актуальную версию выкатывает CI.
+- name: Create app directories
+  ansible.builtin.file:
+    path: "{{ item.dest }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0755"
+  loop: "{{ apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Clone repositories
+  ansible.builtin.git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.dest }}"
+    version: "{{ item.version | default('main') }}"
+    update: false
+  become_user: "{{ deploy_user }}"
+  loop: "{{ apps }}"
+  loop_control:
+    label: "{{ item.name }}"

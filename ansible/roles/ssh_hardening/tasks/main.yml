@@ -1,0 +1,26 @@
+---
+# Защита от самоблокировки: без ключей мы бы отключили пароли и закрыли
+# себе вход.
+- name: Refuse to harden SSH without keys
+  ansible.builtin.assert:
+    that:
+      - deploy_authorized_keys | length > 0
+      - admin_user | length > 0
+    fail_msg: "Заполните deploy_authorized_keys и admin_user в group_vars/all.yml"
+
+- name: Harden sshd
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/99-hardening.conf
+    mode: "0644"
+    content: |
+      Port {{ ssh_port }}
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PubkeyAuthentication yes
+      AllowUsers {{ ([deploy_user, admin_user] | unique) | join(' ') }}
+      MaxAuthTries 3
+      LoginGraceTime 20
+      X11Forwarding no
+    validate: "sshd -t -f %s"
+  notify: Restart sshd

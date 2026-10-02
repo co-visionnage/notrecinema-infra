@@ -1,0 +1,24 @@
+# Скопируйте в group_vars/all.yml (он в .gitignore) и заполните.
+
+# --- Доступ ---
+deploy_user: deploy
+# Ваш уже существующий пользователь, под которым вы заходите сейчас.
+# Он остаётся в AllowUsers, чтобы вы не потеряли доступ.
+admin_user: ubuntu
+ssh_port: 22
+# Публичные ключи (.pub), которым разрешён вход под deploy_user.
+deploy_authorized_keys:
+  - "ssh-ed25519 AAAA... github-actions-deploy"
+
+# --- Firewall: порты, открытые наружу (SSH открывается отдельно) ---
+public_ports:
+  - 80
+  - 443
+
+# --- Приложения: что клонировать на сервер (роль app_checkout) ---
+# Список можно менять свободно: роль ничего не знает о конкретных проектах.
+apps:
+  - name: some-api
+    repo: https://github.com/<ORG_NAME>/<REPOS_NAME>.git
+    dest: /opt/path
+    version: main

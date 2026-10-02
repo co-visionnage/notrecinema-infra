@@ -1,0 +1,17 @@
+---
+# Полная настройка сервера. Роли независимы и выбираются тегами:
+#   ansible-playbook site.yml                 # всё
+#   ansible-playbook site.yml --tags apps     # только клонирование приложений
+#   ansible-playbook site.yml --tags ssh      # только SSH
+- name: Configure server
+  hosts: all
+  become: true
+
+  roles:
+    - { role: common, tags: [common] }
+    - { role: deploy_user, tags: [users] }
+    - { role: docker, tags: [docker] }
+    - { role: ssh_hardening, tags: [ssh] }
+    - { role: firewall, tags: [firewall] }
+    - { role: fail2ban, tags: [fail2ban] }
+    - { role: app_checkout, tags: [apps] }
