@@ -3,8 +3,19 @@
 #   ansible-playbook site.yml                 # всё
 #   ansible-playbook site.yml --tags apps     # только клонирование приложений
 #   ansible-playbook site.yml --tags ssh      # только SSH
+- name: Guard - branch must contain latest origin/main
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  tags: [always]
+  tasks:
+    - name: Check that the branch is up to date with main
+      ansible.builtin.command: "python3 {{ playbook_dir }}/../scripts/check_main_actual.py"
+      changed_when: false
+
 - name: Configure server
-  hosts: all
+  hosts: servers
   become: true
 
   roles:

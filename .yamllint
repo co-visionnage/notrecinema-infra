@@ -1,0 +1,25 @@
+extends: default
+
+ignore: |
+  ansible/group_vars/all.yml
+
+rules:
+  document-start: disable
+  line-length:
+    max: 140
+    level: warning
+  # GitHub Actions использует ключ `on:`
+  truthy:
+    allowed-values: ["true", "false", "on"]
+    check-keys: false
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  comments:
+    min-spaces-from-content: 1
+  indentation:
+    spaces: 2
+    indent-sequences: true

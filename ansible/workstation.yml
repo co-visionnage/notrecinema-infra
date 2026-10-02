@@ -1,0 +1,10 @@
+---
+# Инструменты разработчика на ЭТОЙ машине (не на сервере): Go, yamllint, yamlfmt.
+# Запускается из scripts/install-ansible.sh:
+#   ansible-playbook workstation.yml --ask-become-pass
+- name: Configure developer workstation
+  hosts: localhost
+  connection: local
+  become: true
+  roles:
+    - { role: dev_tools, tags: [dev_tools] }
