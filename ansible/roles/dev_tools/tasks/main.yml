@@ -1,0 +1,49 @@
+---
+- name: Install yamllint
+  ansible.builtin.apt:
+    name: yamllint
+    state: present
+    update_cache: true
+
+# Пакет golang из apt обычно слишком старый для актуального yamlfmt,
+# поэтому берём официальную сборку.
+- name: Get latest stable Go version
+  ansible.builtin.uri:
+    url: https://go.dev/VERSION?m=text
+    return_content: true
+  register: go_version_response
+  changed_when: false
+
+- name: Set Go facts
+  ansible.builtin.set_fact:
+    go_version: "{{ go_version_response.content.splitlines() | first }}"
+    go_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}"
+
+- name: Check installed Go version
+  ansible.builtin.command: /usr/local/go/bin/go version
+  register: go_installed
+  changed_when: false
+  failed_when: false
+
+- name: Install Go
+  ansible.builtin.unarchive:
+    src: "https://go.dev/dl/{{ go_version }}.linux-{{ go_arch }}.tar.gz"
+    dest: /usr/local
+    remote_src: true
+    extra_opts: ["--no-same-owner"]
+  when: go_version not in go_installed.stdout
+
+- name: Link go binaries into PATH
+  ansible.builtin.file:
+    src: "/usr/local/go/bin/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    state: link
+  loop: [go, gofmt]
+
+- name: Install yamlfmt
+  ansible.builtin.command: /usr/local/go/bin/go install github.com/google/yamlfmt/cmd/yamlfmt@latest
+  environment:
+    GOBIN: /usr/local/bin
+    GOCACHE: /tmp/go-build-cache
+    GOPATH: /tmp/go-path
+  changed_when: true
