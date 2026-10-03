@@ -28,3 +28,5 @@
     - {role: nginx, tags: [nginx]}
     - {role: github_ssh, tags: [apps, github]}
     - {role: app_checkout, tags: [apps]}
+    # Выключена по умолчанию (monitoring_enabled): нужен уже запущенный стек приложения.
+    - {role: monitoring, tags: [monitoring]}

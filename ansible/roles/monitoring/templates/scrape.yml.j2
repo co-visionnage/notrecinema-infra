@@ -1,0 +1,25 @@
+# Управляется Ansible (роль monitoring).
+global:
+  scrape_interval: {{ monitoring_scrape_interval }}
+
+scrape_configs:
+  # Имена job используются в правилах алертов (up{job="notrecinema-api"}).
+  - job_name: notrecinema-api
+    static_configs:
+      - targets: ["{{ monitoring_api_target }}"]
+
+  - job_name: notrecinema-worker
+    static_configs:
+      - targets: ["{{ monitoring_worker_target }}"]
+
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  - job_name: victoriametrics
+    static_configs:
+      - targets: ["victoriametrics:8428"]
+
+  - job_name: vmalert
+    static_configs:
+      - targets: ["vmalert:8880"]

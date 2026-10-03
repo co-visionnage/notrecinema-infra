@@ -1,0 +1,88 @@
+# Управляется Ansible (роль monitoring). Править здесь бесполезно: файл
+# перегенерируется при каждом запуске роли.
+services:
+  victoriametrics:
+    image: {{ victoriametrics_image }}
+    container_name: victoriametrics
+    restart: unless-stopped
+    command:
+      - -storageDataPath=/storage
+      - -retentionPeriod={{ victoriametrics_retention }}
+      - -promscrape.config=/etc/victoriametrics/scrape.yml
+      - -httpListenAddr=:8428
+    # Порт на loopback -- для отладки через ssh-туннель; наружу не открыт.
+    ports:
+      - "127.0.0.1:{{ victoriametrics_host_port }}:8428"
+    volumes:
+      - vm_data:/storage
+      - ./victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
+    networks:
+      - monitoring
+      - app
+
+  vmalert:
+    image: {{ vmalert_image }}
+    container_name: vmalert
+    restart: unless-stopped
+    depends_on:
+      - victoriametrics
+    command:
+      - -datasource.url=http://victoriametrics:8428
+      - -remoteWrite.url=http://victoriametrics:8428
+      - -remoteRead.url=http://victoriametrics:8428
+      - -rule=/etc/vmalert/rules/*.yml
+      - -httpListenAddr=:8880
+      # Рассылки пока нет (нет Alertmanager): состояние алертов видно в Grafana
+      # по серии ALERTS{alertstate="firing"} и в интерфейсе vmalert.
+      - -notifier.blackhole
+    volumes:
+      - ./vmalert/rules:/etc/vmalert/rules:ro
+    networks:
+      - monitoring
+
+  node-exporter:
+    image: {{ node_exporter_image }}
+    container_name: node-exporter
+    restart: unless-stopped
+    pid: host
+    command:
+      - --path.rootfs=/host
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - monitoring
+
+  grafana:
+    image: {{ grafana_image }}
+    container_name: grafana
+    restart: unless-stopped
+    depends_on:
+      - victoriametrics
+    environment:
+      GF_SECURITY_ADMIN_USER: {{ grafana_admin_user | to_json }}
+      GF_SECURITY_ADMIN_PASSWORD: {{ grafana_admin_password | replace('$', '$$') | to_json }}
+      GF_SERVER_ROOT_URL: {{ grafana_root_url | to_json }}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    ports:
+      - "127.0.0.1:{{ grafana_host_port }}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge
+  # Сеть стека приложения: через неё VictoriaMetrics достаёт до api и воркера.
+  app:
+    external: true
+    name: {{ monitoring_app_network }}
+
+volumes:
+  vm_data:
+  grafana_data:

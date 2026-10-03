@@ -35,6 +35,18 @@ nginx_sites:
     cache: true
     path_prefix: /notrecinema-images/
 
+# --- Мониторинг (роль monitoring): VictoriaMetrics + vmalert + Grafana ---
+# Включайте после первого запуска стека приложения: роли нужна его docker-сеть.
+# Запуск: ansible-playbook site.yml --tags monitoring --ask-become-pass
+# Чтобы открыть Grafana наружу, добавьте сайт в nginx_sites (ниже) и A-запись
+# grafana.notrecinema.ru на этот сервер:
+#   - name: grafana
+#     server_name: grafana.notrecinema.ru
+#     upstream: http://127.0.0.1:3001
+monitoring_enabled: false
+grafana_admin_password: "" # не короче 12 символов, лучше через ansible-vault
+grafana_root_url: https://grafana.notrecinema.ru
+
 # --- Приложения: что клонировать на сервер (роль app_checkout) ---
 # repo -- только SSH-адрес (git@github.com:org/repo.git).
 apps:

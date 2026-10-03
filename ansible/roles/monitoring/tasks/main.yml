@@ -1,0 +1,116 @@
+---
+- name: Monitoring stack
+  when: monitoring_enabled | bool
+  block:
+    - name: Require the Grafana admin password
+      ansible.builtin.assert:
+        that: grafana_admin_password | length >= 12
+        fail_msg: "Задайте grafana_admin_password (не короче 12 символов) в group_vars/all.yml"
+
+    # Метрики приложения забираются по именам сервисов внутри сети стека
+    # приложения: порты api и воркера на хосте привязаны к loopback и из
+    # другого контейнера недоступны.
+    - name: Check that the application network exists
+      ansible.builtin.command: "docker network inspect {{ monitoring_app_network }}"
+      register: monitoring_app_network_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail with a clear message when the application stack is not up
+      ansible.builtin.fail:
+        msg: >-
+          Docker-сеть {{ monitoring_app_network }} не найдена. Сначала запустите стек
+          приложения (docker compose -f docker-compose.prod.yml up -d в /opt/notrecinema),
+          затем повторите --tags monitoring.
+      when: monitoring_app_network_check.rc != 0
+
+    - name: Create monitoring directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0755"
+      loop:
+        - "{{ monitoring_dir }}"
+        - "{{ monitoring_dir }}/victoriametrics"
+        - "{{ monitoring_dir }}/vmalert/rules"
+        - "{{ monitoring_dir }}/grafana/provisioning/datasources"
+        - "{{ monitoring_dir }}/grafana/provisioning/dashboards"
+        - "{{ monitoring_dir }}/grafana/dashboards"
+
+    # Данные контейнеров лежат в named volumes; у Grafana (uid 472) и
+    # VictoriaMetrics (root) свои владельцы, поэтому права на них не трогаем.
+    - name: Render compose file
+      ansible.builtin.template:
+        src: docker-compose.yml.j2
+        dest: "{{ monitoring_dir }}/docker-compose.yml"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0640"
+      register: monitoring_compose
+
+    - name: Render scrape config
+      ansible.builtin.template:
+        src: scrape.yml.j2
+        dest: "{{ monitoring_dir }}/victoriametrics/scrape.yml"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0644"
+      register: monitoring_scrape
+
+    - name: Copy alert rules
+      ansible.builtin.copy:
+        src: "rules/"
+        dest: "{{ monitoring_dir }}/vmalert/rules/"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0644"
+      register: monitoring_rules
+
+    - name: Render Grafana provisioning
+      ansible.builtin.template:
+        src: "grafana/provisioning/{{ item }}.j2"
+        dest: "{{ monitoring_dir }}/grafana/provisioning/{{ item }}"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0644"
+      loop:
+        - datasources/victoriametrics.yml
+        - dashboards/notrecinema.yml
+      register: monitoring_grafana
+
+    - name: Copy Grafana dashboards
+      ansible.builtin.copy:
+        src: "dashboards/"
+        dest: "{{ monitoring_dir }}/grafana/dashboards/"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0644"
+
+    - name: Start the stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ monitoring_dir }}"
+        state: present
+        pull: missing
+        remove_orphans: true
+
+    # VictoriaMetrics перечитывает scrape-конфиг, vmalert -- правила по SIGHUP /
+    # HTTP-запросу, без перезапуска и потери окна данных.
+    - name: Reload scrape config
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ victoriametrics_host_port }}/-/reload"
+        method: POST
+        status_code: [200, 204]
+      when: monitoring_scrape.changed
+
+    - name: Restart services whose mounted config changed
+      community.docker.docker_compose_v2:
+        project_src: "{{ monitoring_dir }}"
+        state: restarted
+        services: "{{ monitoring_restart_services }}"
+      vars:
+        monitoring_restart_services: >-
+          {{ (['vmalert'] if monitoring_rules.changed else [])
+             + (['grafana'] if monitoring_grafana.changed else []) }}
+      when: monitoring_rules.changed or monitoring_grafana.changed
