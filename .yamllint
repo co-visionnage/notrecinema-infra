@@ -2,6 +2,7 @@ extends: default
 
 ignore: |
   ansible/group_vars/all.yml
+  ansible/group_vars/all/vault.yml
 
 rules:
   document-start: disable

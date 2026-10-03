@@ -5,7 +5,7 @@
     - name: Require the Grafana admin password
       ansible.builtin.assert:
         that: grafana_admin_password | length >= 12
-        fail_msg: "Задайте grafana_admin_password (не короче 12 символов) в group_vars/all.yml"
+        fail_msg: "Задайте grafana_admin_password не короче 12 символов (vault_grafana_admin_password в vault.yml, см. README «Секреты»)"
 
     # Метрики приложения забираются по именам сервисов внутри сети стека
     # приложения: порты api и воркера на хосте привязаны к loopback и из
