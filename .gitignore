@@ -1,2 +1,6 @@
 ansible/inventory.ini
 ansible/group_vars/all.yml
+
+# пароль ansible-vault (если лежит рядом с репозиторием)
+.vault_pass
+*vault-pass*

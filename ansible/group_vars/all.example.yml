@@ -44,7 +44,9 @@ nginx_sites:
 #     server_name: grafana.notrecinema.ru
 #     upstream: http://127.0.0.1:3001
 monitoring_enabled: false
-grafana_admin_password: "" # не короче 12 символов, лучше через ansible-vault
+# Не короче 12 символов. Значение хранится в зашифрованном group_vars/all/vault.yml
+# (scripts/vault-init.sh создаёт его со случайным паролем).
+grafana_admin_password: "{{ vault_grafana_admin_password }}"
 grafana_root_url: https://grafana.notrecinema.ru
 
 # --- Приложения: что клонировать на сервер (роль app_checkout) ---

@@ -48,6 +48,24 @@ cp group_vars/all.example.yml group_vars/all.yml
 
 Оба файла в `.gitignore`: в них адрес сервера.
 
+## Секреты (ansible-vault)
+
+Пароли и токены лежат не в `all.yml`, а в зашифрованном
+`ansible/group_vars/all/vault.yml` (переменные с префиксом `vault_`). Файл
+шифруется AES256 и его можно коммитить; `all.yml` ссылается на него через
+`"{{ vault_... }}"`.
+
+```bash
+scripts/vault-init.sh   # создаёт пароль хранилища и vault.yml со случайными секретами
+scripts/vault-edit.sh   # правка секретов
+export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible/notrecinema-vault-pass
+```
+
+Пароль хранилища (`~/.ansible/notrecinema-vault-pass`) **сохраните в менеджере
+паролей**: он нигде не хранится в репозитории, а без него `vault.yml` не
+открыть. Вместо файла можно запускать плейбук с `--ask-vault-pass`. Пароль
+должен быть длинным: репозиторий публичен, и зашифрованный файл видят все.
+
 ## 3. Запуск
 
 Перед первым запуском держите открытой вторую SSH-сессию на сервер.
