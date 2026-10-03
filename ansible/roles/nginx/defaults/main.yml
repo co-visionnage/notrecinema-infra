@@ -10,7 +10,14 @@ nginx_certbot_email: ""
 #   cache                true -- кэшировать ответы и пускать только GET/HEAD
 #   path_prefix          если задан, наружу отдаётся только этот путь (остальное 404)
 #   browser_cache        срок кэша в браузере для cache: true (по умолчанию 30d)
+#   deny_paths           пути, которые наружу отдают 404 (по умолчанию nginx_default_deny_paths);
+#                        [] -- ничего не закрывать
 nginx_sites: []
+
+# Закрыты по умолчанию у каждого сайта без path_prefix: /metrics api и воркера
+# раскрывает внутреннее состояние сервиса.
+nginx_default_deny_paths:
+  - /metrics
 
 nginx_webroot: /var/www/certbot
 nginx_cache_path: /var/cache/nginx/media
