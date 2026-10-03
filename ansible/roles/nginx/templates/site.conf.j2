@@ -64,6 +64,14 @@ server {
         return 404;
     }
 {% else %}
+{% for denied in site.deny_paths | default(nginx_default_deny_paths) %}
+
+    # Внутреннее: метрики и т.п. не должны быть видны из интернета
+    # (Prometheus ходит к сервису напрямую, мимо nginx).
+    location = {{ denied }} {
+        return 404;
+    }
+{% endfor %}
 
     location / {
 {{ proxy() }}

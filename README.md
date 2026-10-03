@@ -67,5 +67,12 @@ ansible-playbook site.yml --tags apps --ask-become-pass
 ## Что важно знать
 
 - Чтобы клонировать другой репозиторий, достаточно добавить запись в `apps`.
+- `/metrics` у сайтов из `nginx_sites` наружу не отдаётся (404, настраивается
+  через `deny_paths` / `nginx_default_deny_paths`): метрики API и воркера
+  забирает Prometheus напрямую по внутренней сети.
+- В `.env` на сервере (общий для API и воркера) должен быть
+  `UNSUBSCRIBE_SECRET` (`openssl rand -hex 32`), а `APP_URL` -- адрес
+  фронтенда (`https://notrecinema.ru`): на него ведут ссылки из писем.
+  Callback GitHub OAuth теперь `https://<фронтенд>/api/v1/auth/github/callback`.
 - Docker публикует порты в обход UFW: всё из `ports:` в compose будет доступно
   снаружи, даже если UFW порт не разрешал.
