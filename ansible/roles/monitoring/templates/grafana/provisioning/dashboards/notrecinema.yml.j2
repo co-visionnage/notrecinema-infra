@@ -1,0 +1,13 @@
+# Управляется Ansible (роль monitoring). Дашборды берутся из JSON-файлов в
+# roles/monitoring/files/dashboards; правки через интерфейс Grafana не
+# сохраняются (allowUiUpdates: false) -- меняйте JSON и перезапускайте роль.
+apiVersion: 1
+providers:
+  - name: notrecinema
+    folder: notrecinema
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 60
+    options:
+      path: /var/lib/grafana/dashboards

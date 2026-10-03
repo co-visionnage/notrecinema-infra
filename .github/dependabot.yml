@@ -7,3 +7,9 @@ updates:
     commit-message:
       prefix: chore
       include: scope
+<<<<<<< HEAD
+    groups:
+      actions-minor-and-patch:
+        update-types: [minor, patch]
+=======
+>>>>>>> origin/main

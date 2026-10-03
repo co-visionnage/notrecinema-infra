@@ -1,0 +1,142 @@
+---
+# Правила алертов vmalert. Описание метрик и пороги -- в
+# notrecinema-api/docs/METRICS.md; пороги -- отправная точка, подбирайте по
+# реальному трафику.
+groups:
+  - name: notrecinema-api
+    rules:
+      - alert: ApiDown
+        expr: up{job="notrecinema-api"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: "API не отвечает на сбор метрик"
+
+      - alert: ApiHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="notrecinema-api",status=~"5.."}[5m]))
+            / sum(rate(http_requests_total{job="notrecinema-api"}[5m])) > 0.02
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Доля ответов 5xx выше 2% ({{ $value | humanizePercentage }})"
+
+      - alert: ApiSlow
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket{job="notrecinema-api"}[5m]))) > 1
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "p95 времени ответа API выше секунды"
+
+      - alert: ApiPanics
+        expr: increase(http_panics_total{job="notrecinema-api"}[10m]) > 0
+        labels: {severity: critical}
+        annotations:
+          summary: "Паника в обработчике запроса (баг)"
+
+      - alert: DbPoolStarved
+        expr: |
+          rate(db_pool_empty_acquires_total[5m]) / rate(db_pool_acquires_total[5m]) > 0.2
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Пул соединений БД часто пуст: запросы ждут соединение"
+
+      - alert: DbQueryErrors
+        expr: sum(rate(db_queries_total{result="error"}[5m])) > 0.1
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Запросы к БД завершаются ошибкой"
+
+      # События копятся в outbox: публикация в NATS стоит.
+      - alert: OutboxStuck
+        expr: outbox_oldest_pending_age_seconds > 120
+        for: 5m
+        labels: {severity: critical}
+        annotations:
+          summary: "Самому старому событию outbox больше двух минут"
+
+      # Фоновая задача давно не отрабатывала успешно. Метка job самой задачи при
+      # сборе переименовывается в exported_job (job занят именем scrape-задачи).
+      - alert: BackgroundJobStale
+        expr: time() - background_job_last_success_timestamp_seconds > 3 * 86400
+        labels: {severity: warning}
+        annotations:
+          summary: "Задача {{ $labels.exported_job }} не завершалась успешно больше трёх суток"
+
+      # Всплеск неудачных входов: подбор паролей.
+      - alert: LoginBruteForce
+        expr: sum(rate(auth_events_total{event="login",result="invalid_credentials"}[5m])) > 1
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Много неудачных попыток входа"
+
+      - alert: RateLimitSpike
+        expr: sum(rate(rate_limit_checks_total{result="rejected"}[5m])) > 5
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Лимиты запросов отклоняют много обращений"
+
+  - name: notrecinema-worker
+    rules:
+      - alert: WorkerDown
+        expr: up{job="notrecinema-worker"} == 0 or worker_nats_connected == 0
+        for: 3m
+        labels: {severity: critical}
+        annotations:
+          summary: "Воркер недоступен или потерял соединение с NATS"
+
+      # Воркер отстаёт: письма и push приходят с задержкой.
+      - alert: WorkerLagging
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(worker_event_age_seconds_bucket[5m]))) > 60
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "События обрабатываются с задержкой больше минуты (p95)"
+
+      - alert: DeadLetterNotEmpty
+        expr: worker_dead_letter_messages > 0
+        labels: {severity: warning}
+        annotations:
+          summary: "В dead-letter стриме есть необработанные события"
+
+      - alert: MailFailing
+        expr: |
+          sum(rate(worker_mail_total{result="failed"}[15m]))
+            / sum(rate(worker_mail_total[15m])) > 0.1
+        for: 15m
+        labels: {severity: warning}
+        annotations:
+          summary: "Больше 10% писем не отправляется"
+
+  - name: host
+    rules:
+      - alert: HostDown
+        expr: up{job="node"} == 0
+        for: 3m
+        labels: {severity: critical}
+        annotations:
+          summary: "Не собираются метрики сервера"
+
+      - alert: DiskAlmostFull
+        expr: |
+          node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint="/"}
+            / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint="/"} < 0.1
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "На корневом диске осталось меньше 10%"
+
+      - alert: MemoryLow
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.1
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Свободной памяти меньше 10%"
