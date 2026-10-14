@@ -26,7 +26,8 @@
 - name: "{{ site.server_name }}: obtain certificate"
   ansible.builtin.command: >-
     certbot certonly --webroot -w {{ nginx_webroot }}
-    -d {{ site.server_name }} -m {{ nginx_certbot_email }}
+    -d {{ site.server_name }}{% for alias in site.aliases | default([]) %} -d {{ alias }}{% endfor %}
+    -m {{ nginx_certbot_email }}
     --agree-tos --no-eff-email --non-interactive
   args:
     creates: "/etc/letsencrypt/live/{{ site.server_name }}/fullchain.pem"

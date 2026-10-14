@@ -1,6 +1,22 @@
 # Управляется Ansible (роль nginx). Контекст http.
 server_tokens off;
 
+# Запросы к неизвестному имени хоста (по IP, чужой домен на этот адрес) не
+# должны попадать на первый попавшийся сайт: без этого они уходили бы на API.
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 444;
+}
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+    ssl_reject_handshake on;
+}
+
 # `gzip on;` уже включён в штатном nginx.conf Ubuntu -- повтор даёт ошибку "duplicate".
 gzip_comp_level 5;
 gzip_min_length 512;

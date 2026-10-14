@@ -22,9 +22,17 @@ public_ports:
   - 443
 
 # --- nginx (роль nginx): TLS, проксирование и кэш картинок ---
-# Перед запуском A-записи api.* и media.* должны указывать на этот сервер.
+# Перед запуском A-записи api.*, media.* и сайта (с www) должны указывать на
+# этот сервер. Фронтенд (контейнер notrecinema-app) слушает loopback :3000.
 nginx_certbot_email: you@example.com
 nginx_sites:
+  - name: web
+    server_name: notrecinema.ru
+    aliases:
+      - www.notrecinema.ru
+    upstream: http://127.0.0.1:3000
+    # Загрузка постеров идёт через тот же домен (/api/v1/upload/image).
+    client_max_body_size: 6m
   - name: api
     server_name: api.notrecinema.ru
     upstream: http://127.0.0.1:8090
