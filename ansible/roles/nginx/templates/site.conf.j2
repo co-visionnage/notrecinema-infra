@@ -24,7 +24,7 @@
 server {
     listen 80;
     listen [::]:80;
-    server_name {{ site.server_name }};
+    server_name {{ ([site.server_name] + (site.aliases | default([]))) | join(' ') }};
 
     location /.well-known/acme-challenge/ {
         root {{ nginx_webroot }};
@@ -78,4 +78,22 @@ server {
     }
 {% endif %}
 }
+{% if site.aliases | default([]) | length > 0 %}
+
+# Алиасы (например, www) переводят на основной домен: один адрес сайта.
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name {{ site.aliases | join(' ') }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ site.server_name }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ site.server_name }}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_tickets off;
+
+    return 301 https://{{ site.server_name }}$request_uri;
+}
+{% endif %}
 {% endif %}
