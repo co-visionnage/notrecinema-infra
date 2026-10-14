@@ -28,5 +28,6 @@ jobs:
           pipx install --include-deps ansible
           ansible-galaxy collection install -r ansible/requirements.yml
           cp ansible/inventory.example.ini ansible/inventory.ini
-          cp ansible/group_vars/all.example.yml ansible/group_vars/all.yml
+          mkdir -p ansible/group_vars/all
+          cp ansible/group_vars/all.example.yml ansible/group_vars/all/main.yml
           cd ansible && ansible-playbook site.yml --syntax-check

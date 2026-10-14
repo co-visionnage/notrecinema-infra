@@ -4,7 +4,7 @@
 #
 # Роль выключена по умолчанию: ей нужен уже запущенный стек приложения (она
 # подключается к его docker-сети, чтобы забирать метрики api и воркера).
-# Включение: monitoring_enabled: true в group_vars/all.yml, затем
+# Включение: monitoring_enabled: true в group_vars/all/main.yml, затем
 #   ansible-playbook site.yml --tags monitoring --ask-become-pass
 monitoring_enabled: false
 
@@ -29,7 +29,7 @@ victoriametrics_retention: 90d
 # Как часто забирать метрики.
 monitoring_scrape_interval: 15s
 
-# Grafana. Пароль администратора обязателен (group_vars/all.yml, лучше через
+# Grafana. Пароль администратора обязателен (group_vars/all/main.yml, лучше через
 # ansible-vault). Наружу Grafana отдаётся через nginx-сайт (см. пример в
 # group_vars/all.example.yml), сам контейнер слушает только loopback.
 grafana_admin_user: admin

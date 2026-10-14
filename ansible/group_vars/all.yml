@@ -1,0 +1,38 @@
+---
+deploy_user: deploy
+admin_user: critique
+ssh_port: 22
+deploy_authorized_keys:
+  - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHx5+xPDnrbWkswGinVKRCWEVQY5v3AnSrrJbBbq+LvB windows-gh-new"
+
+git_ssh_private_key_file: /home/critique/.ssh/github_key
+
+public_ports:
+  - 80
+  - 443
+
+nginx_certbot_email: oberlev.daniil@yandex.ru
+nginx_sites:
+  - name: api
+    server_name: api.notrecinema.ru
+    upstream: http://127.0.0.1:8090
+    client_max_body_size: 6m
+  - name: media
+    server_name: media.notrecinema.ru
+    upstream: http://127.0.0.1:8333
+    cache: true
+    path_prefix: /notrecinema-images/
+
+monitoring_enabled: false
+grafana_admin_password: "{{ vault_grafana_admin_password }}"
+grafana_root_url: https://grafana.notrecinema.ru
+
+apps:
+  - name: notrecinema-api
+    repo: git@github.com:co-visionnage/notrecinema-api.git
+    dest: /opt/notrecinema
+    version: main
+  - name: notrecinema-schema
+    repo: git@github.com:co-visionnage/database.git
+    dest: /opt/notrecinema-schema
+    version: main

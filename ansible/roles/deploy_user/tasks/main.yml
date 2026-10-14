@@ -13,10 +13,13 @@
     groups: docker
     append: true
     password_lock: true
+  register: deploy_user_result
 
+# В режиме --check пользователь ещё не создан, и модулю нечего менять: пропускаем.
 - name: Authorize SSH keys for the deploy user
   ansible.posix.authorized_key:
     user: "{{ deploy_user }}"
     key: "{{ item }}"
     state: present
   loop: "{{ deploy_authorized_keys }}"
+  when: not (ansible_check_mode and deploy_user_result is changed)

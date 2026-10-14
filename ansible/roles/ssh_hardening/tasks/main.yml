@@ -6,7 +6,7 @@
     that:
       - deploy_authorized_keys | length > 0
       - admin_user | length > 0
-    fail_msg: "Заполните deploy_authorized_keys и admin_user в group_vars/all.yml"
+    fail_msg: "Заполните deploy_authorized_keys и admin_user в group_vars/all/main.yml"
 
 - name: Harden sshd
   ansible.builtin.copy:

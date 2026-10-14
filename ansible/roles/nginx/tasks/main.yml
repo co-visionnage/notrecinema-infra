@@ -4,7 +4,7 @@
     that:
       - nginx_certbot_email | length > 0
       - nginx_sites | length > 0
-    fail_msg: "Задайте nginx_certbot_email и nginx_sites в group_vars/all.yml"
+    fail_msg: "Задайте nginx_certbot_email и nginx_sites в group_vars/all/main.yml"
 
 - name: Install nginx and certbot
   ansible.builtin.apt:
@@ -46,6 +46,13 @@
     dest: /etc/nginx/snippets/notrecinema-security.conf
     mode: "0644"
   notify: Reload nginx
+
+# Пакет certbot может не создать каталог хуков до первого запуска.
+- name: Create certbot deploy hooks directory
+  ansible.builtin.file:
+    path: /etc/letsencrypt/renewal-hooks/deploy
+    state: directory
+    mode: "0755"
 
 - name: Reload nginx after certbot renewal
   ansible.builtin.copy:

@@ -6,7 +6,7 @@
     that:
       - git_ssh_private_key_file is defined
       - git_ssh_private_key_file | length > 0
-    fail_msg: "Укажите git_ssh_private_key_file в group_vars/all.yml"
+    fail_msg: "Укажите git_ssh_private_key_file в group_vars/all/main.yml"
 
 - name: Check the private key file exists
   ansible.builtin.stat:

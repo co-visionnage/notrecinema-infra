@@ -34,14 +34,14 @@ umask 077
 cat >"$vault_file" <<YAML
 ---
 # Секреты. Файл зашифрован ansible-vault; правка: scripts/vault-edit.sh
-# Имена с префиксом vault_ подставляются в group_vars/all.yml.
+# Имена с префиксом vault_ подставляются в group_vars/all/main.yml.
 vault_grafana_admin_password: "$(openssl rand -base64 24 | tr -d '/+=\n')"
 YAML
 ansible-vault encrypt --vault-password-file "$pass_file" "$vault_file"
 
 echo
 echo "Готово: $vault_file (зашифрован, его можно коммитить)."
-echo "Дальше в ansible/group_vars/all.yml:"
+echo "Дальше в ansible/group_vars/all/main.yml:"
 echo '  grafana_admin_password: "{{ vault_grafana_admin_password }}"'
 echo "и перед запуском плейбука:"
 echo "  export ANSIBLE_VAULT_PASSWORD_FILE=$pass_file"

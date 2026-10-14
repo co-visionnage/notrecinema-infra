@@ -7,7 +7,7 @@
 ```bash
 ansible/
   site.yml                  точка входа
-  group_vars/all.example.yml  все настройки (копия -> all.yml)
+  group_vars/all.example.yml  все настройки (копия -> all/main.yml)
   inventory.example.ini     адрес сервера (копия -> inventory.ini)
   roles/
     common/        базовые пакеты, автообновления безопасности
@@ -42,7 +42,7 @@ wsl --install -d Ubuntu
 ```bash
 cd ansible
 cp inventory.example.ini inventory.ini
-cp group_vars/all.example.yml group_vars/all.yml
+cp group_vars/all.example.yml group_vars/all/main.yml
 # отредактируйте оба файла
 ```
 
@@ -50,9 +50,9 @@ cp group_vars/all.example.yml group_vars/all.yml
 
 ## Секреты (ansible-vault)
 
-Пароли и токены лежат не в `all.yml`, а в зашифрованном
+Пароли и токены лежат не в `all/main.yml`, а в зашифрованном
 `ansible/group_vars/all/vault.yml` (переменные с префиксом `vault_`). Файл
-шифруется AES256 и его можно коммитить; `all.yml` ссылается на него через
+шифруется AES256 и его можно коммитить; `main.yml` ссылается на него через
 `"{{ vault_... }}"`.
 
 ```bash
@@ -99,7 +99,7 @@ ansible-playbook site.yml --tags apps --ask-become-pass
 хосте привязаны к loopback и из контейнера недоступны). Порядок:
 
 1. Задеплойте стек приложения (`docker-compose.prod.yml` в `/opt/notrecinema`).
-2. В `group_vars/all.yml`: `monitoring_enabled: true`, `grafana_admin_password`
+2. В `group_vars/all/main.yml`: `monitoring_enabled: true`, `grafana_admin_password`
    (не короче 12 символов), `grafana_root_url`.
 3. Чтобы открыть Grafana наружу: A-запись `grafana.notrecinema.ru` на сервер и
    сайт `grafana` в `nginx_sites` (пример -- в `all.example.yml`), затем
