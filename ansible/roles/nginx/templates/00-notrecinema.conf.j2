@@ -1,7 +1,7 @@
 # Управляется Ansible (роль nginx). Контекст http.
 server_tokens off;
 
-gzip on;
+# `gzip on;` уже включён в штатном nginx.conf Ubuntu -- повтор даёт ошибку "duplicate".
 gzip_comp_level 5;
 gzip_min_length 512;
 gzip_proxied any;
